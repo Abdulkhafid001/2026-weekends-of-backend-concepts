@@ -441,11 +441,12 @@
                     <!-- In Django: value="{{ idempotency_key }}" -->
                     <input type="hidden" name="idempotency_key" id="idempotency-key-input" />
                     <!-- <input type="hidden" name="cart_id" value="cart_8f3a2c" /> -->
-                    <input type="hidden" name="total" value="185.12" />
+                    <input type="hidden" name="total" value="185" />
+                    <input type="hidden" name="username" value="Yslcodes" />
 
                     <button type="submit" class="pay-btn" id="pay-btn">
                         <span class="btn-content" id="btn-content">
-                            <span>Pay $185.12</span>
+                            <span>Pay $185</span>
                         </span>
                         <span class="btn-content" id="btn-loading" style="display:none;">
                             <span class="spinner" id="spinner" style="display:inline-block;"></span>
@@ -483,8 +484,7 @@
             if (parts.length === 2) return parts.pop().split(';').shift();
             return null;
         }
-        const username = getCookie('csrftoken');
-        console.log(username); // Outputs the value of the 'username' cookie, or null if not found   
+       
         // Generate a UUID v4
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
@@ -551,17 +551,20 @@
             const formData = new FormData(e.target)
             const formObject = Object.fromEntries(formData.entries())
             console.log(formObject)
+            const csrftoken = getCookie('csrftoken')
+            console.log(csrftoken)
             const response = await fetch('http://127.0.0.1:8000/pay/checkout/', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json, mulitpart/formdata',
-                    'XCSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,
                     // Authorization: `Bearer`
                 },
-                body: JSON.stringify()
+                body: JSON.stringify(formObject)
             })
 
             const responseData = await response.json()
+
 
             // Simulated 1.5s network delay → success by default
             await new Promise(r => setTimeout(r, 1500));

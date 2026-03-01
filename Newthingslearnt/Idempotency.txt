@@ -4,3 +4,5 @@ that has the field you want to have choices.
 
 2. Understood more of fetch and the FormData and creating objects from entries using the
 Object.fromEntries()
+
+3. Sending Json responses from a Django view using both HttpResponse and JsonResponse classes
