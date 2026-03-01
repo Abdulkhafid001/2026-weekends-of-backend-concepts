@@ -2,13 +2,605 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idempotent Payment</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f0e0c;
+            --surface: #1a1916;
+            --border: #2e2c28;
+            --gold: #c9a84c;
+            --gold-light: #e8c96a;
+            --text: #f0ece3;
+            --muted: #7a7468;
+            --danger: #e05a5a;
+            --success: #5aad84;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        /* Subtle noise texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .checkout-wrapper {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            letter-spacing: 0.04em;
+            color: var(--gold);
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem 1.75rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .card-header h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--text);
+        }
+
+        .item-count {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--muted);
+            background: var(--border);
+            padding: 2px 8px;
+            border-radius: 20px;
+        }
+
+        /* Cart Items */
+        .cart-items {
+            padding: 1rem 1.75rem;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .item-meta {
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+        }
+
+        .item-price {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--gold);
+            font-weight: 500;
+        }
+
+        /* Summary */
+        .summary {
+            padding: 1.25rem 1.75rem;
+            border-top: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-bottom: 0.6rem;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .summary-row.total {
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            margin-bottom: 0;
+        }
+
+        .summary-row.total span:last-child {
+            color: var(--gold-light);
+        }
+
+        /* Idempotency Key Display */
+        .idempotency-info {
+            padding: 0.85rem 1.75rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+
+        .idempotency-label {
+            font-size: 0.7rem;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            flex-shrink: 0;
+        }
+
+        .idempotency-key {
+            font-size: 0.65rem;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            text-align: right;
+        }
+
+        .regenerate-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 6px;
+            line-height: 1;
+            transition: color 0.2s;
+            flex-shrink: 0;
+        }
+
+        .regenerate-btn:hover {
+            color: var(--gold);
+        }
+
+        /* Pay Button */
+        .pay-section {
+            padding: 1.25rem 1.75rem 1.75rem;
+        }
+
+        .pay-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--gold);
+            color: #0f0e0c;
+            border: none;
+            border-radius: 12px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .pay-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .pay-btn:hover {
+            background: var(--gold-light);
+        }
+
+        .pay-btn:active {
+            transform: scale(0.99);
+        }
+
+        .pay-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pay-btn .btn-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-top-color: #0f0e0c;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Status banner */
+        .status-banner {
+            display: none;
+            padding: 0.75rem 1.75rem;
+            font-size: 0.82rem;
+            font-family: 'DM Mono', monospace;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .status-banner.success {
+            display: block;
+            color: var(--success);
+            background: rgba(90, 173, 132, 0.07);
+        }
+
+        .status-banner.error {
+            display: block;
+            color: var(--danger);
+            background: rgba(224, 90, 90, 0.07);
+        }
+
+        .status-banner.duplicate {
+            display: block;
+            color: var(--gold);
+            background: rgba(201, 168, 76, 0.07);
+        }
+
+        /* Lock icon */
+        .lock-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 0.85rem;
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        /* Simulate buttons (dev only) */
+        .dev-tools {
+            margin-top: 1.5rem;
+            padding: 1rem 1.25rem;
+            background: var(--surface);
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+        }
+
+        .dev-tools-title {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .dev-btns {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .dev-btn {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.7rem;
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--muted);
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+
+        .dev-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Implement Idempotent Payment!</h1>
+
+    <div class="checkout-wrapper">
+        <div class="logo">✦ Maison &amp; Co.</div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Your Order</h2>
+                <span class="item-count">3 items</span>
+            </div>
+
+            <div class="cart-items">
+                <div class="cart-item">
+                    <div class="item-thumb">🕯️</div>
+                    <div class="item-info">
+                        <div class="item-name">Bergamot Hand Candle</div>
+                        <div class="item-meta">Qty: 1 · 200g</div>
+                    </div>
+                    <div class="item-price">$38.00</div>
+                </div>
+
+                <div class="cart-item">
+                    <div class="item-thumb">🧴</div>
+                    <div class="item-info">
+                        <div class="item-name">Cedar Body Serum</div>
+                        <div class="item-meta">Qty: 2 · 100ml</div>
+                    </div>
+                    <div class="item-price">$74.00</div>
+                </div>
+
+                <div class="cart-item">
+                    <div class="item-thumb">🌿</div>
+                    <div class="item-info">
+                        <div class="item-name">Vetiver Room Mist</div>
+                        <div class="item-meta">Qty: 1 · 250ml</div>
+                    </div>
+                    <div class="item-price">$52.00</div>
+                </div>
+            </div>
+
+            <div class="summary">
+                <div class="summary-row"><span>Subtotal</span><span>$164.00</span></div>
+                <div class="summary-row"><span>Shipping</span><span>$8.00</span></div>
+                <div class="summary-row"><span>Tax (8%)</span><span>$13.12</span></div>
+                <div class="summary-row total"><span>Total</span><span>$185.12</span></div>
+            </div>
+
+            <!-- Idempotency Key -->
+            <div class="idempotency-info">
+                <span class="idempotency-label">Key</span>
+                <span class="idempotency-key" id="idempotency-key-display">generating...</span>
+                <button class="regenerate-btn" onclick="regenerateKey()" title="Generate new key">↻</button>
+            </div>
+
+            <div id="status-banner" class="status-banner"></div>
+
+            <div class="pay-section">
+                <form id="checkout-form" onsubmit="handlePay(event)">
+                    {% csrf_token %}
+                    <!-- In Django: value="{{ idempotency_key }}" -->
+                    <input type="hidden" name="idempotency_key" id="idempotency-key-input" />
+                    <!-- <input type="hidden" name="cart_id" value="cart_8f3a2c" /> -->
+                    <input type="hidden" name="total" value="185.12" />
+
+                    <button type="submit" class="pay-btn" id="pay-btn">
+                        <span class="btn-content" id="btn-content">
+                            <span>Pay $185.12</span>
+                        </span>
+                        <span class="btn-content" id="btn-loading" style="display:none;">
+                            <span class="spinner" id="spinner" style="display:inline-block;"></span>
+                            <span>Processing…</span>
+                        </span>
+                    </button>
+                </form>
+
+                <div class="lock-note">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Secured · Idempotent payment
+                </div>
+            </div>
+        </div>
+
+        <!-- Dev tools for testing scenarios -->
+        <div class="dev-tools">
+            <div class="dev-tools-title">⚙ Dev: Simulate server response</div>
+            <div class="dev-btns">
+                <button class="dev-btn" onclick="simulateResponse('success')">✓ Success</button>
+                <button class="dev-btn" onclick="simulateResponse('duplicate')">↺ Duplicate</button>
+                <button class="dev-btn" onclick="simulateResponse('error')">✕ Error</button>
+                <button class="dev-btn" onclick="resetForm()">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+        const username = getCookie('csrftoken');
+        console.log(username); // Outputs the value of the 'username' cookie, or null if not found   
+        // Generate a UUID v4
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+            });
+        }
+
+        let currentKey = '';
+
+        function setKey(key) {
+            currentKey = key;
+            document.getElementById('idempotency-key-display').textContent = key;
+            document.getElementById('idempotency-key-input').value = key;
+        }
+
+        function regenerateKey() {
+            setKey(generateUUID());
+            clearStatus();
+            enableButton();
+        }
+
+        function regenerateKey() {
+            setKey(generateUUID());
+            clearStatus();
+            enableButton();
+        }
+
+        // Init on page load
+        setKey(generateUUID());
+
+        function showStatus(type, message) {
+            const banner = document.getElementById('status-banner');
+            banner.className = `status-banner ${type}`;
+            banner.textContent = message;
+        }
+
+        function clearStatus() {
+            const banner = document.getElementById('status-banner');
+            banner.className = 'status-banner';
+            banner.textContent = '';
+        }
+
+        function enableButton() {
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = false;
+            document.getElementById('btn-content').style.display = 'flex';
+            document.getElementById('btn-loading').style.display = 'none';
+        }
+
+        function setLoading() {
+            const btn = document.getElementById('pay-btn');
+            btn.disabled = true;
+            document.getElementById('btn-content').style.display = 'none';
+            document.getElementById('btn-loading').style.display = 'flex';
+        }
+
+        async function handlePay(e) {
+            e.preventDefault();
+            setLoading();
+            clearStatus();
+
+            // Implement the impotency 
+            const formData = new FormData(e.target)
+            const formObject = Object.fromEntries(formData.entries())
+            console.log(formObject)
+            const response = await fetch('http://127.0.0.1:8000/pay/checkout/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json, mulitpart/formdata',
+                    'XCSRFToken': getCookie('csrftoken'),
+                    // Authorization: `Bearer`
+                },
+                body: JSON.stringify()
+            })
+
+            const responseData = await response.json()
+
+            // Simulated 1.5s network delay → success by default
+            await new Promise(r => setTimeout(r, 1500));
+            handleResponse({ status: 'success', message: 'Payment of $185.12 processed successfully.' });
+        }
+
+        function handleResponse(data) {
+            enableButton();
+
+            if (data.status === 'success') {
+                showStatus('success', '✓ ' + data.message);
+            } else if (data.status === 'duplicate') {
+                showStatus('duplicate', '↺ ' + data.message);
+            } else {
+                showStatus('error', '✕ ' + (data.message || 'Payment failed. Please try again.'));
+            }
+        }
+
+        function resetForm() {
+            enableButton();
+            clearStatus();
+            regenerateKey();
+        }
+
+        // Dev simulation helpers
+        function simulateResponse(type) {
+            setLoading();
+            clearStatus();
+            setTimeout(() => {
+                const messages = {
+                    success: { status: 'success', message: 'Payment of $185.12 processed successfully.' },
+                    duplicate: { status: 'duplicate', message: 'This payment was already processed. No charge made.' },
+                    error: { status: 'error', message: 'Card declined. Please check your details.' }
+                };
+                handleResponse(messages[type]);
+            }, 1000);
+        }
+    </script>
+
 </body>
 
 </html>
