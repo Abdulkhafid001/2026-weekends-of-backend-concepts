@@ -21,7 +21,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'debug_toolbar',
     'idempotentpayment',
+    'cacheblog',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -32,6 +34,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -43,6 +46,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'backendtopics.urls'
 
+INTERNAL_IPS = ['127.0.0.1']   
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -68,6 +72,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    }
+}
+
+# Caching
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache', #cache backend in this case using Database cache
+        'LOCATION': 'blog_cache_table' # name of cache table
     }
 }
 

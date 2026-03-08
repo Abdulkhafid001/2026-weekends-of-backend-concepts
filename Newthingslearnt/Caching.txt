@@ -1,0 +1,4 @@
+1. Django signals can be used to do cache invalidation
+and the mechanism used here is Write-through-cache
+which involves updating your cache whenever the database 
+is updated.

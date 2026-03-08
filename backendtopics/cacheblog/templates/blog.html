@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Default Title{% endblock %}</title>
+    <style>
+        .pubdate{
+            color: gray;
+            opacity: 70%;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Blog posts</h2>
+    {% for blog in blogs %}
+    <h4>{{blog.author}} <span class="pubdate">{{blog.pub_date}}</span></h4>
+    <!-- <p>{{blog.content}}</p> -->
+    <a href="http://127.0.0.1:8000/blog/detail/{{blog.pk}}">View post</a>
+    {%endfor%}
+</body>
+
+</html>
