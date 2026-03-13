@@ -2,3 +2,10 @@
 and the mechanism used here is Write-through-cache
 which involves updating your cache whenever the database 
 is updated.
+
+
+2. Learning to use the Django low level cache API (Database Cache)
+use it to cache the results of blog post in app, I wired it to a signal in Django which 
+automatically clears the cache, the view calling the page will rebuild the cache, serve it from 
+database first time, but then later it gets all data from the cache until a new record is 
+inserted in the DB
