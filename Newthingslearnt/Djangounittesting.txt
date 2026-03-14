@@ -1,0 +1,5 @@
+
+TEST COMMANDS
+python manage.py test blog          # run all tests in the blog app
+python manage.py test blog.tests.PostModelTest  # run one class
+python manage.py test --verbosity=2 # see each test name as it runs

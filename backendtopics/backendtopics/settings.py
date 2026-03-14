@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'idempotentpayment',
     'cacheblog',
+    'blogtest',
     'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
