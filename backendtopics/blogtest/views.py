@@ -1,7 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden
 from .models import Post
+
+def logintest(request):
+    return HttpResponse('login successful')
 
 def post_list(request):
     posts = Post.objects.filter(published=True)
